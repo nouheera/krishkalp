@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard - Krishkalp Traders</title>
+
+  <link 
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" 
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container d-flex justify-content-between">
+      <a class="navbar-brand" href="#">Admin Panel</a>
+
+      <button class="btn btn-danger" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container py-5">
+
+    <h2 class="fw-bold mb-4">Orders Overview</h2>
+
+    <table class="table table-striped table-bordered">
+      <thead class="table-dark">
+        <tr>
+            <th>Order ID</th>
+            <th>Customer</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Items</th>
+            <th>Total (₹)</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+
+      <tbody id="admin-orders">
+        <!-- Orders load here -->
+      </tbody>
+    </table>
+
+  </div>
+
+  <hr class="my-5">
+
+  <h3 class="fw-bold mb-4 text-center">Analytics Dashboard</h3>
+
+  <div class="row">
+
+    <div class="col-md-6 mb-4">
+      <div class="p-4 shadow rounded bg-white">
+        <h5 class="mb-3 text-center">Orders Per Day</h5>
+        <canvas id="ordersChart"></canvas>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+      <div class="p-4 shadow rounded bg-white">
+        <h5 class="mb-3 text-center">Revenue Trend</h5>
+        <canvas id="revenueChart"></canvas>
+      </div>
+    </div>
+
+    <div class="col-md-6 offset-md-3 mb-4">
+      <div class="p-4 shadow rounded bg-white">
+        <h5 class="mb-3 text-center">Best Selling Products</h5>
+        <canvas id="productChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Load frontend JS -->
+  <script src="script.js"></script>
+
+  <!-- TOKEN CHECK (placed at bottom to avoid redirect loop) -->
+  <script>
+    console.log("ADMIN PAGE TOKEN:", localStorage.getItem("adminToken"));
+
+    function logout() {
+      localStorage.removeItem("adminToken");
+      window.location.href = "admin-login.html";
+    }
+
+    // Only run check after entire page loads
+    const token = localStorage.getItem("adminToken");
+
+    if (!token) {
+      window.location.href = "admin-login.html";
+    }
+  </script>
+<script src="script.js"></script>
+
+</body>
+</html>
