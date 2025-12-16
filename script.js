@@ -42,7 +42,7 @@ let products = [];
 // Fetch products from backend ONCE
 async function fetchProducts() {
   try {
-    const res = await fetch("http://localhost:5000/api/products");
+    const res = await fetch("https://krishkalp.onrender.com/api/orders");
     products = await res.json();
     console.log("Loaded products from DB:", products);
 
@@ -348,7 +348,7 @@ function placeOrder() {
   console.log("Sending order:", orderData);
 
   // 1️⃣ SAVE ORDER TO BACKEND
-  fetch("http://localhost:5000/api/orders", {
+  fetch("https://krishkalp.onrender.com/api/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderData)
@@ -414,7 +414,7 @@ function loadAdminOrders() {
     return;
   }
 
-  fetch("http://localhost:5000/api/orders", {
+  fetch("https://krishkalp.onrender.com/api/orders", {
     headers: { "Authorization": "Bearer " + token }
   })
     .then(res => {
@@ -474,7 +474,7 @@ loadAdminOrders();
 function markDelivered(orderId) {
   const token = localStorage.getItem("adminToken");
 
-  fetch(`http://localhost:5000/api/orders/${orderId}`, {
+  fetch(`https://krishkalp.onrender.com/api/orders/${orderId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -490,7 +490,7 @@ function markDelivered(orderId) {
 function markPaid(orderId) {
   const token = localStorage.getItem("adminToken");
 
-  fetch(`http://localhost:5000/api/orders/${orderId}`, {
+  fetch(`https://krishkalp.onrender.com/api/orders/${orderId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -508,7 +508,7 @@ function deleteOrder(orderId) {
 
   const token = localStorage.getItem("adminToken");
 
-  fetch(`http://localhost:5000/api/orders/${orderId}`, {
+  fetch(`https://krishkalp.onrender.com/api/orders/${orderId}`, {
     method: "DELETE",
     headers: { "Authorization": "Bearer " + token }
   })
