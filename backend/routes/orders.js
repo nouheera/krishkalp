@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Order = require("../models/Order.Js");
+const Order = require("../models/Order.js");
 const auth = require("../middleware/auth");
 
 // CREATE ORDER
