@@ -516,8 +516,15 @@ function deleteOrder(orderId) {
     .then(() => loadAdminOrders());
 }
 document.addEventListener("DOMContentLoaded", () => {
-  const cartContainer = document.getElementById("cart-items");
-  if (cartContainer) {
+
+  // CART PAGE
+  if (document.getElementById("cart-items")) {
     loadCart();
   }
+
+  // CHECKOUT PAGE
+  if (document.getElementById("checkout-total")) {
+    updateCheckoutSummary();
+  }
+
 });
