@@ -235,9 +235,6 @@ function loadCart() {
   totalSpan.innerText = total;
 }
 
-if (window.location.pathname.includes("cart.html")) {
-  loadCart();
-}
 
 // CHECKOUT PAGE
 function loadCheckout() {
@@ -518,3 +515,9 @@ function deleteOrder(orderId) {
     .then(res => res.json())
     .then(() => loadAdminOrders());
 }
+document.addEventListener("DOMContentLoaded", () => {
+  const cartContainer = document.getElementById("cart-items");
+  if (cartContainer) {
+    loadCart();
+  }
+});
