@@ -42,17 +42,20 @@ let products = [];
 // Fetch products from backend ONCE
 async function fetchProducts() {
   try {
-    const res = await fetch("https://krishkalp.onrender.com/api/orders");
+    const res = await fetch(
+      "https://krishkalp-backend.onrender.com/api/products"
+    );
     products = await res.json();
     console.log("Loaded products from DB:", products);
 
-    if (window.location.pathname.includes("products.html")) {
-      loadProducts();
-    }
+    const list = document.getElementById("product-list");
+    if (list) loadProducts();
   } catch (err) {
     console.error("Failed to load products:", err);
   }
 }
+
+fetchProducts();
 
 fetchProducts();
 
@@ -348,7 +351,7 @@ function placeOrder() {
   console.log("Sending order:", orderData);
 
   // 1️⃣ SAVE ORDER TO BACKEND
-  fetch("https://krishkalp.onrender.com/api/orders", {
+  fetch("https://krishkalp-backend.onrender.com/api/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderData)
@@ -414,7 +417,7 @@ function loadAdminOrders() {
     return;
   }
 
-  fetch("https://krishkalp.onrender.com/api/orders", {
+  fetch("https://krishkalp-backend.onrender.com/api/orders", {
     headers: { "Authorization": "Bearer " + token }
   })
     .then(res => {
@@ -474,7 +477,7 @@ loadAdminOrders();
 function markDelivered(orderId) {
   const token = localStorage.getItem("adminToken");
 
-  fetch(`https://krishkalp.onrender.com/api/orders/${orderId}`, {
+  fetch(`https://krishkalp-backend.onrender.com/api/orders/${orderId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -490,7 +493,7 @@ function markDelivered(orderId) {
 function markPaid(orderId) {
   const token = localStorage.getItem("adminToken");
 
-  fetch(`https://krishkalp.onrender.com/api/orders/${orderId}`, {
+  fetch(`https://krishkalp-backend.onrender.com/api/orders/${orderId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -508,7 +511,7 @@ function deleteOrder(orderId) {
 
   const token = localStorage.getItem("adminToken");
 
-  fetch(`https://krishkalp.onrender.com/api/orders/${orderId}`, {
+  fetch(`https://krishkalp-backend.onrender.com/api/orders/${orderId}`, {
     method: "DELETE",
     headers: { "Authorization": "Bearer " + token }
   })
