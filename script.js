@@ -238,15 +238,15 @@ function loadCart() {
 
 // CHECKOUT PAGE
 function loadCheckout() {
-  if (!window.location.pathname.includes("checkout.html")) return;
-
   let cart = JSON.parse(localStorage.getItem("cart")) || [];
   const summaryDiv = document.getElementById("summary");
   const totalSpan = document.getElementById("checkoutTotal");
 
+  if (!summaryDiv || !totalSpan) return;
+
   if (cart.length === 0) {
     summaryDiv.innerHTML = "<p class='text-muted'>Your cart is empty.</p>";
-    totalSpan.innerText = "₹0";
+    totalSpan.innerText = "0";
     return;
   }
 
@@ -265,8 +265,9 @@ function loadCheckout() {
     `;
   });
 
-  totalSpan.innerText = "₹" + total;
+  totalSpan.innerText = total;
 }
+
 
 loadCheckout();
 
@@ -523,8 +524,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // CHECKOUT PAGE
-  if (document.getElementById("checkout-total")) {
-    updateCheckoutSummary();
-  }
+ if (document.getElementById("checkoutTotal")) {
+  loadCheckout();
+}
 
 });
