@@ -1,3 +1,5 @@
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
 console.log("Welcome to Krishkalp Traders!");
 
 // Fade-in animation
@@ -57,7 +59,7 @@ async function fetchProducts() {
 
 fetchProducts();
 
-fetchProducts();
+
 
 // Product page: search by pressing Enter
 document.addEventListener("keypress", function (e) {
@@ -67,130 +69,107 @@ document.addEventListener("keypress", function (e) {
 });
 
 // RENDER PRODUCTS
-async function loadProducts() {
+function loadProducts() {
   const list = document.getElementById("product-list");
-  const search = document.getElementById("productSearch")?.value.toLowerCase() || "";
   if (!list) return;
+
+  // read category from URL
+  const params = new URLSearchParams(window.location.search);
+  const selectedCategory = params.get("category"); // grains / pulses / dryfruits
 
   list.innerHTML = "";
 
   products
-    .filter(p => p.name.toLowerCase().includes(search))
+    .filter(p => !selectedCategory || p.category === selectedCategory)
     .forEach(product => {
+
+      let priceHtml = "";
+      if (product.category === "grains") {
+        priceHtml = `<p>₹${product.pricePerKg} / KG</p>`;
+      } else if (product.category === "pulses") {
+        priceHtml = `<p>₹${product.pricePerKg} / KG</p>`;
+      } else {
+        priceHtml = `<p>₹${product.price250g} / 250g</p>`;
+      }
+
       list.innerHTML += `
-        <div class="col-md-4 mb-4">
-          <div class="card shadow product-card">
-            <img src="${product.image}" class="product-img card-img-top" alt="${product.name}">
+        <div class="col-6 col-md-4 mb-4">
+          <div class="card product-card">
+            <img src="${product.image}" class="product-img">
             <div class="card-body text-center">
-              <h5>${product.name}</h5>
-
-              <div class="mb-2">
-                <select class="form-select form-select-sm unit-select"
-                        data-product-id="${product._id}">
-                  ${product.units.map(u =>
-        `<option value="${u.key}" data-price="${u.price}">
-            ${u.label} — ₹${u.price}
-         </option>`
-      ).join("")}
-                </select>
-              </div>
-
-              <div class="mb-2">
-                <span class="stock-label" id="stock-${product._id}"></span>
-              </div>
-
-              <div class="d-flex justify-content-center align-items-center mb-2">
-                <input type="number" min="1" value="1"
-                  class="form-control form-control-sm me-2 qty-input"
-                  style="width:80px"
-                  data-product-id="${product._id}">
-                <button class="btn btn-warning" onclick="addToCart('${product._id}')">
-                  Add to Cart
-                </button>
-              </div>
-
+              <h6 class="fw-bold">${product.name}</h6>
+              ${priceHtml}
+              <button class="btn btn-warning w-100" onclick="addToCart(${product.id})">
+                Add to Cart
+              </button>
             </div>
           </div>
         </div>
       `;
-
-      // STOCK DISPLAY
-      const stockEl = document.getElementById(`stock-${product._id}`);
-      if (product.stock > 20) {
-        stockEl.innerHTML = `<span style="color: green; font-weight:bold;">🟢 In stock (${product.stock})</span>`;
-      } else if (product.stock > 0) {
-        stockEl.innerHTML = `<span style="color: orange; font-weight:bold;">🟠 Low stock (${product.stock})</span>`;
-      } else {
-        stockEl.innerHTML = `<span style="color: red; font-weight:bold;">🔴 Out of stock</span>`;
-      }
     });
 }
+if (window.location.pathname.includes("products.html")) {
+  loadProducts();
+}
+
 
 // CART LOGIC
-let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
 function addToCart(id) {
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-
-  const product = products.find(p => p._id === id);
+  const product = products.find(p => p.id === id);
   if (!product) return;
 
-  if (product.stock <= 0) {
-    alert("This item is OUT OF STOCK!");
-    return;
+  let unitPrice, unitLabel;
+
+  if (product.category === "grains") {
+    unitPrice = product.pricePerKg;
+    unitLabel = "1 KG";
+  } else if (product.category === "pulses") {
+    unitPrice = product.pricePerKg;
+    unitLabel = "1 KG";
+  } else {
+    unitPrice = product.price250g;
+    unitLabel = "250 g";
   }
 
-  const unitSelect = document.querySelector(`.unit-select[data-product-id="${id}"]`);
-  const qtyInput = document.querySelector(`.qty-input[data-product-id="${id}"]`);
-
-  const unitKey = unitSelect.value;
-  const unitLabel = unitSelect.selectedOptions[0].textContent.split(" — ")[0];
-  const unitPrice = Number(unitSelect.selectedOptions[0].dataset.price);
-  const qty = Number(qtyInput.value);
-
-  let existing = cart.find(
-    (item) => item._id === id && item.unitKey === unitKey
-  );
+  const existing = cart.find(item => item.id === id);
 
   if (existing) {
-    existing.qty += qty;
+    existing.qty += 1;
   } else {
     cart.push({
-      _id: product._id,
+      id: product.id,
       name: product.name,
       image: product.image,
-      unitKey,
-      unitLabel,
-      unitPrice,
-      qty
+      qty: 1,
+      unitPrice,      // ✅ CONSISTENT
+      unitLabel       // ✅ CONSISTENT
     });
-  }
-
-  // Update product stock
-  product.stock -= qty;
-
-  // Update UI
-  const stockEl = document.getElementById(`stock-${product._id}`);
-  if (product.stock > 20) {
-    stockEl.innerHTML = `<span style="color: green; font-weight:bold;">🟢 In stock (${product.stock})</span>`;
-  } else if (product.stock > 0) {
-    stockEl.innerHTML = `<span style="color: orange; font-weight:bold;">🟠 Low stock (${product.stock})</span>`;
-  } else {
-    stockEl.innerHTML = `<span style="color: red; font-weight:bold;">🔴 Out of stock</span>`;
   }
 
   localStorage.setItem("cart", JSON.stringify(cart));
-  showToast(product.name + " added to cart!");
-  updateMobileCartCount();
-
+  updateCartCount();
 }
+
+function updateCartCount() {
+  cart = JSON.parse(localStorage.getItem("cart")) || [];
+  const count = cart.reduce((sum, i) => sum + i.qty, 0);
+  const badge = document.getElementById("cartCount");
+  if (badge) badge.innerText = count;
+}
+
+
+updateCartCount();
+
 
 // LOAD CART PAGE
 function loadCart() {
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+  // 🔥 ALWAYS re-sync cart from localStorage
+  cart = JSON.parse(localStorage.getItem("cart")) || [];
+
   const cartDiv = document.getElementById("cart-items");
   const totalSpan = document.getElementById("total");
-  if (!cartDiv) return;
+  if (!cartDiv || !totalSpan) return;
 
   if (cart.length === 0) {
     cartDiv.innerHTML = `<h5 class="text-center text-muted">Your cart is empty.</h5>`;
@@ -208,7 +187,7 @@ function loadCart() {
     cartDiv.innerHTML += `
       <div class="card mb-3 p-3 shadow-sm">
         <div class="row align-items-center">
-        
+
           <div class="col-md-2">
             <img src="${item.image}" class="img-fluid rounded">
           </div>
@@ -240,7 +219,8 @@ function loadCart() {
 
 // CHECKOUT PAGE
 function loadCheckout() {
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+  cart = JSON.parse(localStorage.getItem("cart")) || [];
+
   const summaryDiv = document.getElementById("summary");
   const totalSpan = document.getElementById("checkoutTotal");
 
@@ -274,38 +254,34 @@ function loadCheckout() {
 loadCheckout();
 
 function increaseQty(index) {
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
   cart[index].qty += 1;
-
   localStorage.setItem("cart", JSON.stringify(cart));
   loadCart();
+  updateCartCount();
 }
 
-// Decrease quantity
 function decreaseQty(index) {
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-
   if (cart[index].qty > 1) {
     cart[index].qty -= 1;
   } else {
-    cart.splice(index, 1); // remove item
+    cart.splice(index, 1);
   }
-
   localStorage.setItem("cart", JSON.stringify(cart));
   loadCart();
+  updateCartCount();
 }
+
 
 // Remove item completely
 function removeItem(index) {
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-
-  cart.splice(index, 1); // delete item
-
+  cart.splice(index, 1);
   localStorage.setItem("cart", JSON.stringify(cart));
   loadCart();
+  updateCartCount();
 }
+
+
 function placeOrder() {
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
   if (cart.length === 0) {
     alert("Your cart is empty!");
     return;
@@ -537,7 +513,6 @@ function goToCart() {
 }
 
 function updateMobileCartCount() {
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
   let count = cart.reduce((sum, item) => sum + item.qty, 0);
 
   const countSpan = document.getElementById("mobile-cart-count");
