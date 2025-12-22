@@ -73,9 +73,8 @@ function loadProducts() {
   const list = document.getElementById("product-list");
   if (!list) return;
 
-  // read category from URL
   const params = new URLSearchParams(window.location.search);
-  const selectedCategory = params.get("category"); // grains / pulses / dryfruits
+  const selectedCategory = params.get("category");
 
   list.innerHTML = "";
 
@@ -84,12 +83,18 @@ function loadProducts() {
     .forEach(product => {
 
       let priceHtml = "";
+
       if (product.category === "grains") {
-        priceHtml = `<p>₹${product.pricePerKg} / KG</p>`;
-      } else if (product.category === "pulses") {
-        priceHtml = `<p>₹${product.pricePerKg} / KG</p>`;
-      } else {
-        priceHtml = `<p>₹${product.price250g} / 250g</p>`;
+        const price = product.pricePerKg ?? product.price ?? product.pricePerPacket;
+        priceHtml = `<p>₹${price} / KG</p>`;
+      } 
+      else if (product.category === "pulses") {
+        const price = product.pricePerKg ?? product.price;
+        priceHtml = `<p>₹${price} / KG</p>`;
+      } 
+      else {
+        const price = product.price250g ?? product.price;
+        priceHtml = `<p>₹${price} / 250g</p>`;
       }
 
       list.innerHTML += `
@@ -108,6 +113,7 @@ function loadProducts() {
       `;
     });
 }
+
 if (window.location.pathname.includes("products.html")) {
   loadProducts();
 }
@@ -509,7 +515,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function goToCart() {
-  window.location.href = "/cart";
+  window.location.href = "cart.html";
 }
 
 function updateMobileCartCount() {
