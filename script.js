@@ -84,18 +84,12 @@ function loadProducts() {
 
       let priceHtml = "";
 
-      if (product.category === "grains") {
-        const price = product.pricePerKg ?? product.price ?? product.pricePerPacket;
-        priceHtml = `<p>₹${price} / KG</p>`;
-      } 
-      else if (product.category === "pulses") {
-        const price = product.pricePerKg ?? product.price;
-        priceHtml = `<p>₹${price} / KG</p>`;
-      } 
-      else {
-        const price = product.price250g ?? product.price;
-        priceHtml = `<p>₹${price} / 250g</p>`;
-      }
+    if (product.category === "grains" || product.category === "pulses") {
+      priceHtml = `<p>₹${product.price} / KG</p>`;
+    } else {
+      priceHtml = `<p>₹${product.price} / 250g</p>`;
+    }
+
 
       list.innerHTML += `
         <div class="col-6 col-md-4 mb-4">
@@ -126,15 +120,15 @@ function addToCart(id) {
   if (!product) return;
 
   let unitPrice, unitLabel;
-
+  
   if (product.category === "grains") {
-    unitPrice = product.pricePerKg;
+    unitPrice = product.price;
     unitLabel = "1 KG";
   } else if (product.category === "pulses") {
-    unitPrice = product.pricePerKg;
+    unitPrice = product.price;
     unitLabel = "1 KG";
   } else {
-    unitPrice = product.price250g;
+    unitPrice = product.price;
     unitLabel = "250 g";
   }
 
