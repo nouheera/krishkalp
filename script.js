@@ -82,14 +82,12 @@ function loadProducts() {
     .filter(p => !selectedCategory || p.category === selectedCategory)
     .forEach(product => {
 
-      let priceHtml = "";
+      // 🔑 get 1 KG unit price
+      const kgUnit = product.units?.find(u => u.key === "kg");
 
-    if (product.category === "grains" || product.category === "pulses") {
-      priceHtml = `<p>₹${product.price} / KG</p>`;
-    } else {
-      priceHtml = `<p>₹${product.price} / 250g</p>`;
-    }
-
+      let priceHtml = kgUnit
+        ? `<p>₹${kgUnit.price} / KG</p>`
+        : `<p class="text-muted">Price not available</p>`;
 
       list.innerHTML += `
         <div class="col-6 col-md-4 mb-4">
@@ -108,6 +106,8 @@ function loadProducts() {
     });
 }
 
+
+
 if (window.location.pathname.includes("products.html")) {
   loadProducts();
 }
@@ -116,23 +116,18 @@ if (window.location.pathname.includes("products.html")) {
 // CART LOGIC
 
 function addToCart(id) {
-  const product = products.find(p => p.id === id);
+  const product = products.find(p => p.id == id);
   if (!product) return;
 
-  let unitPrice, unitLabel;
-  
-  if (product.category === "grains") {
-    unitPrice = product.price;
-    unitLabel = "1 KG";
-  } else if (product.category === "pulses") {
-    unitPrice = product.price;
-    unitLabel = "1 KG";
-  } else {
-    unitPrice = product.price;
-    unitLabel = "250 g";
+  // default to 1 KG
+  const kgUnit = product.units.find(u => u.key === "kg");
+
+  if (!kgUnit) {
+    alert("Price not available");
+    return;
   }
 
-  const existing = cart.find(item => item.id === id);
+  const existing = cart.find(item => item.id == id);
 
   if (existing) {
     existing.qty += 1;
@@ -142,14 +137,15 @@ function addToCart(id) {
       name: product.name,
       image: product.image,
       qty: 1,
-      unitPrice,      // ✅ CONSISTENT
-      unitLabel       // ✅ CONSISTENT
+      unitPrice: kgUnit.price,
+      unitLabel: kgUnit.label
     });
   }
 
   localStorage.setItem("cart", JSON.stringify(cart));
   updateCartCount();
 }
+
 
 function updateCartCount() {
   cart = JSON.parse(localStorage.getItem("cart")) || [];
