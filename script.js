@@ -1,31 +1,38 @@
+console.log("script.js loaded");
+
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
 console.log("Welcome to Krishkalp Traders!");
 
-// Fade-in animation
-const faders = document.querySelectorAll('.fade-in');
-function checkFade() {
-  const triggerBottom = window.innerHeight * 0.85;
-  faders.forEach(el => {
-    const top = el.getBoundingClientRect().top;
-    if (top < triggerBottom) el.classList.add('show');
-  });
-}
-window.addEventListener('scroll', checkFade);
-checkFade();
 
-// Reveal-on-scroll
-function revealOnScroll() {
-  const reveals = document.querySelectorAll('.reveal');
-  for (let r of reveals) {
-    const windowHeight = window.innerHeight;
-    const elementTop = r.getBoundingClientRect().top;
-    const revealPoint = 80;
-    if (elementTop < windowHeight - revealPoint) {
-      r.classList.add('active');
-    }
+// ================= ENTRY ANIMATION =================
+
+const grainContainer = document.getElementById("grainContainer");
+
+function fillWithGrains() {
+  if (!grainContainer) return; // ✅ PREVENT CRASH
+
+  const grainCount = Math.floor(
+    (window.innerWidth * window.innerHeight) / 15000
+  );
+
+  for (let i = 0; i < grainCount; i++) {
+    const grain = document.createElement("div");
+    grain.className = "grain";
+
+    grain.style.left = Math.random() * window.innerWidth + "px";
+    grain.style.top = Math.random() * window.innerHeight + "px";
+
+    grainContainer.appendChild(grain);
   }
 }
+
+// run ONLY if container exists
+if (grainContainer) {
+  fillWithGrains();
+}
+
+
 
 document.addEventListener("DOMContentLoaded", () => {
   let currentPage = window.location.pathname.split("/").pop();
@@ -35,8 +42,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-window.addEventListener('scroll', revealOnScroll);
-revealOnScroll();
 
 // GLOBAL PRODUCTS
 let products = [];
@@ -68,35 +73,45 @@ document.addEventListener("keypress", function (e) {
   }
 });
 
-// RENDER PRODUCTS
 function loadProducts() {
   const list = document.getElementById("product-list");
   if (!list) return;
 
-  const params = new URLSearchParams(window.location.search);
-  const selectedCategory = params.get("category");
-
   list.innerHTML = "";
 
+  const params = new URLSearchParams(window.location.search);
+  const category = params.get("category");
+
   products
-    .filter(p => !selectedCategory || p.category === selectedCategory)
+    .filter(p => (category ? p.category === category : true))
     .forEach(product => {
 
-      // 🔑 get 1 KG unit price
-      const kgUnit = product.units?.find(u => u.key === "kg");
+      let priceHtml = "";
 
-      let priceHtml = kgUnit
-        ? `<p>₹${kgUnit.price} / KG</p>`
-        : `<p class="text-muted">Price not available</p>`;
+      if (product.units && product.units.length > 0) {
+        priceHtml = `
+          <select class="form-select mb-2" id="unit-${product._id}">
+            ${product.units.map(unit => `
+              <option 
+                value="${unit.key}" 
+                data-price="${unit.price}" 
+                data-label="${unit.label}">
+                ${unit.label} – ₹${unit.price}
+              </option>
+            `).join("")}
+          </select>
+        `;
+      }
 
       list.innerHTML += `
-        <div class="col-6 col-md-4 mb-4">
-          <div class="card product-card">
+        <div class="col-md-4 mb-4">
+          <div class="card product-card shadow">
             <img src="${product.image}" class="product-img">
             <div class="card-body text-center">
-              <h6 class="fw-bold">${product.name}</h6>
+              <h5 class="fw-bold">${product.name}</h5>
               ${priceHtml}
-              <button class="btn btn-warning w-100" onclick="addToCart(${product.id})">
+              <button class="btn btn-warning mt-2" 
+                onclick="addToCart('${product._id}')">
                 Add to Cart
               </button>
             </div>
@@ -106,263 +121,52 @@ function loadProducts() {
     });
 }
 
-
-
-if (window.location.pathname.includes("products.html")) {
-  loadProducts();
-}
-
-
-// CART LOGIC
-
-function addToCart(id) {
-  const product = products.find(p => p.id == id);
-  if (!product) return;
-
-  // default to 1 KG
-  const kgUnit = product.units.find(u => u.key === "kg");
-
-  if (!kgUnit) {
-    alert("Price not available");
-    return;
-  }
-
-  const existing = cart.find(item => item.id == id);
-
-  if (existing) {
-    existing.qty += 1;
-  } else {
-    cart.push({
-      id: product.id,
-      name: product.name,
-      image: product.image,
-      qty: 1,
-      unitPrice: kgUnit.price,
-      unitLabel: kgUnit.label
-    });
-  }
-
-  localStorage.setItem("cart", JSON.stringify(cart));
-  updateCartCount();
-}
-
-
 function updateCartCount() {
-  cart = JSON.parse(localStorage.getItem("cart")) || [];
-  const count = cart.reduce((sum, i) => sum + i.qty, 0);
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
+  const count = cart.reduce((sum, item) => sum + item.qty, 0);
+
   const badge = document.getElementById("cartCount");
   if (badge) badge.innerText = count;
 }
 
 
-updateCartCount();
+function addToCart(id) {
+  const product = products.find(p => p._id === id);
+  if (!product) return;
 
+  const select = document.getElementById(`unit-${id}`);
+  if (!select) return;
 
-// LOAD CART PAGE
-function loadCart() {
-  // 🔥 ALWAYS re-sync cart from localStorage
-  cart = JSON.parse(localStorage.getItem("cart")) || [];
+  const selectedOption = select.options[select.selectedIndex];
 
-  const cartDiv = document.getElementById("cart-items");
-  const totalSpan = document.getElementById("total");
-  if (!cartDiv || !totalSpan) return;
+  const unitPrice = Number(selectedOption.dataset.price);
+  const unitLabel = selectedOption.dataset.label;
 
-  if (cart.length === 0) {
-    cartDiv.innerHTML = `<h5 class="text-center text-muted">Your cart is empty.</h5>`;
-    totalSpan.innerText = "0";
-    return;
-  }
+  let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-  cartDiv.innerHTML = "";
-  let total = 0;
+  const existing = cart.find(item =>
+    item.id === id && item.unitLabel === unitLabel
+  );
 
-  cart.forEach((item, index) => {
-    const itemTotal = item.unitPrice * item.qty;
-    total += itemTotal;
-
-    cartDiv.innerHTML += `
-      <div class="card mb-3 p-3 shadow-sm">
-        <div class="row align-items-center">
-
-          <div class="col-md-2">
-            <img src="${item.image}" class="img-fluid rounded">
-          </div>
-
-          <div class="col-md-4">
-            <h5>${item.name}</h5>
-            <p class="text-muted">${item.unitLabel} — ₹${item.unitPrice}</p>
-            <p class="fw-bold">Total: ₹${itemTotal}</p>
-          </div>
-
-          <div class="col-md-4 d-flex align-items-center">
-            <button class="btn btn-secondary btn-sm" onclick="decreaseQty(${index})">−</button>
-            <span class="mx-2 fw-bold">${item.qty}</span>
-            <button class="btn btn-secondary btn-sm" onclick="increaseQty(${index})">+</button>
-          </div>
-
-          <div class="col-md-2 text-end">
-            <button class="btn btn-danger" onclick="removeItem(${index})">Remove</button>
-          </div>
-
-        </div>
-      </div>
-    `;
-  });
-
-  totalSpan.innerText = total;
-}
-
-
-// CHECKOUT PAGE
-function loadCheckout() {
-  cart = JSON.parse(localStorage.getItem("cart")) || [];
-
-  const summaryDiv = document.getElementById("summary");
-  const totalSpan = document.getElementById("checkoutTotal");
-
-  if (!summaryDiv || !totalSpan) return;
-
-  if (cart.length === 0) {
-    summaryDiv.innerHTML = "<p class='text-muted'>Your cart is empty.</p>";
-    totalSpan.innerText = "0";
-    return;
-  }
-
-  let total = 0;
-  summaryDiv.innerHTML = "";
-
-  cart.forEach(item => {
-    const itemTotal = item.unitPrice * item.qty;
-    total += itemTotal;
-
-    summaryDiv.innerHTML += `
-      <div class="d-flex justify-content-between mb-2">
-        <span>${item.name} (${item.unitLabel}) x${item.qty}</span>
-        <span>₹${itemTotal}</span>
-      </div>
-    `;
-  });
-
-  totalSpan.innerText = total;
-}
-
-
-loadCheckout();
-
-function increaseQty(index) {
-  cart[index].qty += 1;
-  localStorage.setItem("cart", JSON.stringify(cart));
-  loadCart();
-  updateCartCount();
-}
-
-function decreaseQty(index) {
-  if (cart[index].qty > 1) {
-    cart[index].qty -= 1;
+  if (existing) {
+    existing.qty += 1;
   } else {
-    cart.splice(index, 1);
-  }
-  localStorage.setItem("cart", JSON.stringify(cart));
-  loadCart();
-  updateCartCount();
-}
-
-
-// Remove item completely
-function removeItem(index) {
-  cart.splice(index, 1);
-  localStorage.setItem("cart", JSON.stringify(cart));
-  loadCart();
-  updateCartCount();
-}
-
-
-function placeOrder() {
-  if (cart.length === 0) {
-    alert("Your cart is empty!");
-    return;
-  }
-
-  const name = document.getElementById("name").value.trim();
-  const phone = document.getElementById("phone").value.trim();
-  const address = document.getElementById("address").value.trim();
-  const city = document.getElementById("city").value.trim();
-  const pincode = document.getElementById("pincode").value.trim();
-
-  if (!name || !phone || !address || !city || !pincode) {
-    alert("Please fill all fields.");
-    return;
-  }
-
-  const orderId = "ORD-" + Date.now();
-
-  const itemsFormatted = cart
-    .map(item => `• ${item.name} (${item.unitLabel}) x${item.qty}`)
-    .join("%0A");
-
-  const totalAmount = cart.reduce((sum, item) => sum + item.unitPrice * item.qty, 0);
-
-  const orderData = {
-    id: orderId,
-    name,
-    phone,
-    address: `${address}, ${city} - ${pincode}`,
-    items: cart.map(item => ({
-      productId: item._id,
-      name: item.name,
-      unit: item.unitLabel,
-      qty: item.qty,
-      price: item.unitPrice,
-      total: item.unitPrice * item.qty
-    })),
-    total: totalAmount,
-    date: new Date().toLocaleDateString(),
-    status: "Pending"
-  };
-
-  console.log("Sending order:", orderData);
-
-  // 1️⃣ SAVE ORDER TO BACKEND
-  fetch("https://krishkalp-backend.onrender.com/api/orders", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(orderData)
-  })
-    .then(res => res.json())
-    .then(() => {
-
-      // 2️⃣ CREATE BEAUTIFUL WHATSAPP MESSAGE
-const message =
-  `🛍️ *New Order Received!*%0A` +
-  `──────────────────────────%0A` +
-  `🆔 *Order ID:* ${orderId}%0A%0A` +
-  `👤 *Customer:* ${name}%0A` +
-  `📞 *Phone:* ${phone}%0A` +
-  `🏠 *Address:* ${address}, ${city} - ${pincode}%0A%0A` +
-  `📦 *Items Ordered:*%0A` +
-  `${itemsFormatted}%0A%0A` +
-  `💰 *Total Amount:* ₹${totalAmount}%0A` +
-  `📅 *Date:* ${new Date().toLocaleDateString()}%0A` +
-  `──────────────────────────`;
-
-
-      // 3️⃣ SHOP OWNER NUMBER (CHANGE IF YOU WANT)
-      const ownerPhone = "919901188531";
-
-      // 4️⃣ OPEN WHATSAPP MESSAGE
-      const whatsappURL = `https://wa.me/${ownerPhone}?text=${message}`;
-      window.open(whatsappURL, "_blank");
-
-      // 5️⃣ CLEAR CART & REDIRECT
-      localStorage.removeItem("cart");
-      alert("Order placed successfully!");
-      window.location.href = "index.html";
-    })
-    .catch(err => {
-      console.error("Order error:", err);
-      alert("Failed to place order. Try again.");
+    cart.push({
+      id: id,
+      name: product.name,
+      image: product.image,
+      qty: 1,
+      unitPrice: unitPrice,
+      unitLabel: unitLabel
     });
+  }
+
+  localStorage.setItem("cart", JSON.stringify(cart));
+
+  updateCartCount();
+  updateMobileCartCount();   // 🔥 important
 }
+
 
 
 
@@ -405,11 +209,13 @@ function loadAdminOrders() {
           `<tr><td colspan="9" class="text-center text-muted">No orders yet.</td></tr>`;
         return;
       }
+      
 
       orders.forEach(order => {
         const itemsList = order.items
-          .map(i => `${i.name} (${i.unit}) x${i.qty}`)
-          .join(", ");
+        .map(i => `${i.name} (${i.unitLabel}) x${i.qty}`)
+        .join(", ");
+
 
         tableBody.innerHTML += `
           <tr>
@@ -434,10 +240,15 @@ function loadAdminOrders() {
           </tr>
         `;
       });
+      generateAnalytics(orders);
+
     })
     .catch(err => {
       console.error(err);
       localStorage.removeItem("adminToken");
+      updateCartCount();
+      updateMobileCartCount();
+
       window.location.href = "admin-login.html";
     });
 }
@@ -509,7 +320,9 @@ function goToCart() {
 }
 
 function updateMobileCartCount() {
-  let count = cart.reduce((sum, item) => sum + item.qty, 0);
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
+  const count = cart.reduce((sum, item) => sum + item.qty, 0);
+
 
   const countSpan = document.getElementById("mobile-cart-count");
   if (countSpan) {
@@ -517,5 +330,298 @@ function updateMobileCartCount() {
   }
 }
 
+
 // Update count on page load
 document.addEventListener("DOMContentLoaded", updateMobileCartCount);
+
+function enterApp() {
+  const intro = document.getElementById("introScreen");
+  const app = document.getElementById("appContent");
+
+  if (!intro || !app) return; // ✅ prevent crash
+
+  sessionStorage.setItem("enteredApp", "yes");
+
+  intro.style.transition = "opacity 0.6s ease";
+  intro.style.opacity = "0";
+
+  setTimeout(() => {
+    intro.style.display = "none";
+    app.style.display = "block";
+  }, 600);
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  const intro = document.getElementById("introScreen");
+  const app = document.getElementById("appContent");
+
+  if (!intro || !app) return; // ✅ prevent crash
+
+  if (sessionStorage.getItem("enteredApp") === "yes") {
+    intro.style.display = "none";
+    app.style.display = "block";
+  }
+});
+
+function loadCart() {
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
+  const container = document.getElementById("cart-items");
+  const totalEl = document.getElementById("total");
+
+  if (!container) return;
+
+  container.innerHTML = "";
+  let total = 0;
+
+  if (cart.length === 0) {
+    container.innerHTML = `
+      <div class="text-center text-muted">
+        <h5>Your cart is empty 🛒</h5>
+      </div>
+    `;
+    if (totalEl) totalEl.innerText = 0;
+    return;
+  }
+
+  cart.forEach((item, index) => {
+    const itemTotal = item.unitPrice * item.qty;
+    total += itemTotal;
+
+    container.innerHTML += `
+      <div class="card mb-3 p-3 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center">
+          
+          <div>
+            <h5 class="fw-bold">${item.name}</h5>
+            <p class="mb-1 text-muted">${item.unitLabel}</p>
+            <p class="mb-1">Price: ₹${item.unitPrice}</p>
+          </div>
+
+          <div class="text-end">
+            <div class="d-flex align-items-center mb-2">
+              <button class="btn btn-sm btn-outline-secondary me-2"
+                onclick="decreaseQty(${index})">−</button>
+
+              <span class="fw-bold">${item.qty}</span>
+
+              <button class="btn btn-sm btn-outline-secondary ms-2"
+                onclick="increaseQty(${index})">+</button>
+            </div>
+
+            <p class="fw-bold">₹${itemTotal}</p>
+
+            <button class="btn btn-sm btn-danger mt-2"
+              onclick="removeItem(${index})">
+              Remove
+            </button>
+          </div>
+
+        </div>
+      </div>
+    `;
+  });
+
+  if (totalEl) totalEl.innerText = total;
+}
+function increaseQty(index) {
+  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+  cart[index].qty += 1;
+  localStorage.setItem("cart", JSON.stringify(cart));
+  loadCart();
+  updateCartCount();
+}
+
+function decreaseQty(index) {
+  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+  
+  if (cart[index].qty > 1) {
+    cart[index].qty -= 1;
+  } else {
+    cart.splice(index, 1);
+  }
+
+  localStorage.setItem("cart", JSON.stringify(cart));
+  loadCart();
+  updateCartCount();
+}
+
+function removeItem(index) {
+  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+  cart.splice(index, 1);
+  localStorage.setItem("cart", JSON.stringify(cart));
+  loadCart();
+  updateCartCount();
+}
+// Run page-specific functions
+document.addEventListener("DOMContentLoaded", () => {
+
+  if (document.getElementById("cart-items")) {
+    loadCart();
+  }
+
+});
+function loadCheckout() {
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
+  const summary = document.getElementById("summary");
+  const totalEl = document.getElementById("checkoutTotal");
+
+  if (!summary) return;
+
+  summary.innerHTML = "";
+  let total = 0;
+
+  cart.forEach(item => {
+    const itemTotal = item.unitPrice * item.qty;
+    total += itemTotal;
+
+    summary.innerHTML += `
+      <div class="d-flex justify-content-between mb-2">
+        <span>${item.name} (${item.unitLabel}) x ${item.qty}</span>
+        <span>₹${itemTotal}</span>
+      </div>
+    `;
+  });
+
+  if (totalEl) totalEl.innerText = total;
+}
+async function placeOrder() {
+  const name = document.getElementById("name").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const address = document.getElementById("address").value.trim();
+  const city = document.getElementById("city").value.trim();
+  const pincode = document.getElementById("pincode").value.trim();
+
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+  if (!name || !phone || !address || !city || !pincode) {
+    alert("Please fill all details!");
+    return;
+  }
+
+  if (cart.length === 0) {
+    alert("Cart is empty!");
+    return;
+  }
+
+  const total = cart.reduce((sum, item) => sum + item.unitPrice * item.qty, 0);
+
+  const itemsText = cart.map(item =>
+    `${item.name} (${item.unitLabel}) x ${item.qty}`
+  ).join(", ");
+
+  const orderData = {
+    name,
+    phone,
+    address: address + "\n" + city + " - " + pincode,
+    items: cart,
+    total
+  };
+  
+
+  try {
+    // ✅ 1. STORE IN BACKEND
+    saveCustomerDetails();
+
+    await fetch("https://krishkalp-backend.onrender.com/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(orderData)
+    });
+
+    // ✅ 2. OPEN WHATSAPP WITH BILL
+    const message =
+      `🧾 *New Order - Krishkalp Traders* \n\n` +
+      `👤 Name: ${name}\n` +
+      `📞 Phone: ${phone}\n` +
+      `📍 Address: ${address}, ${city} - ${pincode}\n\n` +
+      `🛒 Items:\n${itemsText}\n\n` +
+      `💰 Total: ₹${total}\n\n` +
+      `🚚 Free Delivery`;
+
+    const whatsappURL =
+      `https://wa.me/919901188531?text=${encodeURIComponent(message)}`;
+
+    window.open(whatsappURL, "_blank");
+
+    // Clear cart
+    localStorage.removeItem("cart");
+
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong!");
+  }
+}
+function saveCustomerDetails() {
+  const customer = {
+    name: document.getElementById("name").value,
+    phone: document.getElementById("phone").value,
+    address: document.getElementById("address").value,
+    city: document.getElementById("city").value,
+    pincode: document.getElementById("pincode").value
+  };
+
+  localStorage.setItem("customerDetails", JSON.stringify(customer));
+}
+
+function loadCustomerDetails() {
+  const saved = JSON.parse(localStorage.getItem("customerDetails"));
+  if (!saved) return;
+
+  document.getElementById("name").value = saved.name || "";
+  document.getElementById("phone").value = saved.phone || "";
+  document.getElementById("address").value = saved.address || "";
+  document.getElementById("city").value = saved.city || "";
+  document.getElementById("pincode").value = saved.pincode || "";
+}
+
+function generateAnalytics(orders) {
+  if (!orders || orders.length === 0) return;
+
+  const customerMap = {};
+  const revenueMap = {};
+
+  orders.forEach(order => {
+    revenueMap[order.date] =
+      (revenueMap[order.date] || 0) + order.total;
+
+    customerMap[order.name] =
+      (customerMap[order.name] || 0) + order.total;
+  });
+
+  if (window.revenueChartInstance) {
+    window.revenueChartInstance.destroy();
+  }
+
+  if (window.customerChartInstance) {
+    window.customerChartInstance.destroy();
+  }
+
+  window.revenueChartInstance = new Chart(
+    document.getElementById("revenueChart"),
+    {
+      type: "line",
+      data: {
+        labels: Object.keys(revenueMap),
+        datasets: [{
+          label: "Revenue",
+          data: Object.values(revenueMap)
+        }]
+      }
+    }
+  );
+
+  window.customerChartInstance = new Chart(
+    document.getElementById("productChart"),
+    {
+      type: "bar",
+      data: {
+        labels: Object.keys(customerMap),
+        datasets: [{
+          label: "Customer Spending",
+          data: Object.values(customerMap)
+        }]
+      }
+    }
+  );
+}
+

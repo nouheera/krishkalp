@@ -13,7 +13,6 @@ const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   category: String,
   units: [unitSchema],
-  stock: { type: Number, default: 0 },
   image: String,
   active: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
